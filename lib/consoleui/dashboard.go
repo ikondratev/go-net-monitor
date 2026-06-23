@@ -28,9 +28,10 @@ var (
 
 type dashboardModel struct {
 	device              string
+	port                int
 	aggregator          *netstats.Aggregator
 	spinner             spinner.Model
-	spinerSecond        spinner.Model
+	spinnerSecond       spinner.Model
 	table               table.Model
 	lastDataRefresh     time.Time
 	totalRows           int
@@ -39,7 +40,7 @@ type dashboardModel struct {
 
 type refreshDataMsg struct{}
 
-func newDashboardModel(device string, aggregator *netstats.Aggregator) dashboardModel {
+func newDashboardModel(port int, device string, aggregator *netstats.Aggregator) dashboardModel {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
@@ -69,9 +70,10 @@ func newDashboardModel(device string, aggregator *netstats.Aggregator) dashboard
 	t.SetStyles(styles)
 	return dashboardModel{
 		device:              device,
+		port:                port,
 		aggregator:          aggregator,
 		spinner:             s,
-		spinerSecond:        s2,
+		spinnerSecond:       s2,
 		table:               t,
 		lastDataRefresh:     time.Now(),
 		totalRows:           len(rows),
@@ -82,7 +84,7 @@ func newDashboardModel(device string, aggregator *netstats.Aggregator) dashboard
 func (m dashboardModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.spinner.Tick,
-		m.spinerSecond.Tick,
+		m.spinnerSecond.Tick,
 		refreshData(),
 	)
 }
@@ -106,7 +108,7 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd2 tea.Cmd
 
 		m.spinner, cmd1 = m.spinner.Update(msg)
-		m.spinerSecond, cmd2 = m.spinerSecond.Update(msg)
+		m.spinnerSecond, cmd2 = m.spinnerSecond.Update(msg)
 		return m, tea.Batch(cmd1, cmd2)
 	}
 	return m, nil
@@ -117,23 +119,33 @@ func (m dashboardModel) View() string {
 	if hiddenRows < 0 {
 		hiddenRows = 0
 	}
+
 	title := titleStyle.Render(fmt.Sprintf("%s Network Monitor", m.spinner.View()))
+
+	portText := ""
+	if m.port > 0 {
+		portText = fmt.Sprintf(", port: %d", m.port)
+	}
+
 	meta := metaStyle.Render(fmt.Sprintf(
-		"Interface: %s | Last refresh: %s | Next refresh in: %ds | Hidden connections: %d",
+		"Interface: %s%s | Last refresh: %s | Next refresh in: %ds | Hidden connections: %d",
 		m.device,
+		portText,
 		m.lastDataRefresh.Format("15:04:05"),
 		secondsUntilNextRefresh(m.lastDataRefresh),
 		hiddenRows,
 	))
+
 	content := m.table.View()
 	if m.isWaitingForTraffic {
 		content = startupBoxStyle.Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
-				titleStyle.Render(fmt.Sprintf("Interface: %s %s", m.device, m.spinerSecond.View())),
+				titleStyle.Render(fmt.Sprintf("Interface: %s%s %s", m.device, portText, m.spinnerSecond.View())),
 			),
 		)
 	}
+
 	footer := helpStyle.Render("Press q or Ctrl+C to quit")
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -146,9 +158,9 @@ func (m dashboardModel) View() string {
 	)
 }
 
-func RunDashboard(device string, aggregator *netstats.Aggregator) error {
+func RunDashboard(port int, device string, aggregator *netstats.Aggregator) error {
 	p := tea.NewProgram(
-		newDashboardModel(device, aggregator),
+		newDashboardModel(port, device, aggregator),
 		tea.WithAltScreen(),
 	)
 	_, err := p.Run()

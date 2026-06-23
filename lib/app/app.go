@@ -8,13 +8,15 @@ import (
 
 type App struct {
 	device     string
+	port       int
 	capture    *netcapture.Capture
 	aggregator *netstats.Aggregator
 }
 
-func New(device string, capture *netcapture.Capture, aggregator *netstats.Aggregator) *App {
+func New(port int, device string, capture *netcapture.Capture, aggregator *netstats.Aggregator) *App {
 	return &App{
 		device:     device,
+		port:       port,
 		capture:    capture,
 		aggregator: aggregator,
 	}
@@ -27,5 +29,5 @@ func (a *App) Run() error {
 		}
 	}()
 
-	return consoleui.RunDashboard(a.device, a.aggregator)
+	return consoleui.RunDashboard(a.port, a.device, a.aggregator)
 }

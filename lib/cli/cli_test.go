@@ -38,6 +38,35 @@ func TestParseFlagsDeviceAliases(t *testing.T) {
 	}
 }
 
+func TestParseFlagsPort(t *testing.T) {
+	cfg, err := parseFlags([]string{"-p", "443"})
+	if err != nil {
+		t.Fatalf("parseFlags returned error: %v", err)
+	}
+
+	if cfg.Port != 443 {
+		t.Fatalf("expected port 443, got %d", cfg.Port)
+	}
+}
+
+func TestParseFlagsRejectsInvalidPort(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{name: "negative", args: []string{"-p", "-1"}},
+		{name: "too high", args: []string{"-p", "65536"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := parseFlags(tt.args); err == nil {
+				t.Fatal("expected invalid port error")
+			}
+		})
+	}
+}
+
 func TestParseFlagsRejectsUnknownFlag(t *testing.T) {
 	if _, err := parseFlags([]string{"--unknown"}); err == nil {
 		t.Fatal("expected unknown flag error")

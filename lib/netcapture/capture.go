@@ -1,6 +1,7 @@
 package netcapture
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/gopacket"
@@ -19,13 +20,13 @@ type Capture struct {
 	source *gopacket.PacketSource
 }
 
-func Open(device string) (*Capture, error) {
+func Open(device string, port int) (*Capture, error) {
 	handle, err := pcap.OpenLive(device, snapshotLength, promiscuous, readTimeout)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := handle.SetBPFFilter(packetFilter); err != nil {
+	if err := handle.SetBPFFilter(buildPacketFilter(port)); err != nil {
 		handle.Close()
 		return nil, err
 	}
@@ -42,4 +43,11 @@ func (c *Capture) Packets() chan gopacket.Packet {
 
 func (c *Capture) Close() {
 	c.handle.Close()
+}
+
+func buildPacketFilter(port int) string {
+	if port > 0 {
+		return fmt.Sprintf("ip and (tcp or udp) and port %d", port)
+	}
+	return packetFilter
 }

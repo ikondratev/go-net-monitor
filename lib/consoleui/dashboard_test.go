@@ -2,10 +2,12 @@ package consoleui
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/ikondratev/net-monitor/lib/netinterface"
+	"github.com/ikondratev/net-monitor/lib/netstats"
 )
 
 func TestToTableRowsLimitsRowsAndFormatsValues(t *testing.T) {
@@ -74,5 +76,17 @@ func TestSecondsUntilNextRefreshReturnsZeroAfterInterval(t *testing.T) {
 
 	if got := secondsUntilNextRefresh(lastRefresh); got != 0 {
 		t.Fatalf("expected 0 seconds until next refresh, got %d", got)
+	}
+}
+
+func TestViewShowsPortOnlyWhenConfigured(t *testing.T) {
+	withoutPort := newDashboardModel(0, "en0", netstats.NewAggregator()).View()
+	if strings.Contains(withoutPort, "port:") {
+		t.Fatalf("expected view without port label, got %q", withoutPort)
+	}
+
+	withPort := newDashboardModel(443, "en0", netstats.NewAggregator()).View()
+	if !strings.Contains(withPort, "port: 443") {
+		t.Fatalf("expected view with port label, got %q", withPort)
 	}
 }
