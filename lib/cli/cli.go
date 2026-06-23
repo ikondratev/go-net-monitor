@@ -15,6 +15,7 @@ import (
 type Config struct {
 	ShowInterfaces bool
 	Device         string
+	Port           int
 }
 
 func Run(args []string, stdout io.Writer) error {
@@ -35,14 +36,14 @@ func Run(args []string, stdout io.Writer) error {
 		}
 	}
 
-	capture, err := netcapture.Open(device)
+	capture, err := netcapture.Open(device, cfg.Port)
 	if err != nil {
 		return fmt.Errorf("failed to open interface %q: %w", device, err)
 	}
 	defer capture.Close()
 
 	aggregator := netstats.NewAggregator()
-	application := app.New(device, capture, aggregator)
+	application := app.New(cfg.Port, device, capture, aggregator)
 	if err := application.Run(); err != nil {
 		return fmt.Errorf("ui error: %w", err)
 	}
@@ -57,10 +58,16 @@ func parseFlags(args []string) (Config, error) {
 	fs.BoolVar(&cfg.ShowInterfaces, "si", false, "show available network interfaces")
 	fs.StringVar(&cfg.Device, "i", "", "network interface to capture")
 	fs.StringVar(&cfg.Device, "interface", "", "network interface to capture")
+	fs.IntVar(&cfg.Port, "p", 0, "filter traffic by TCP/UDP port")
 
 	if err := fs.Parse(args); err != nil {
 		return Config{}, err
 	}
+
+	if cfg.Port != 0 && (cfg.Port < 1 || cfg.Port > 65535) {
+		return Config{}, fmt.Errorf("port must be between 1 and 65535")
+	}
+
 	return cfg, nil
 }
 
