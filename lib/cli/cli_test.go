@@ -49,6 +49,37 @@ func TestParseFlagsPort(t *testing.T) {
 	}
 }
 
+func TestParseFlagsFilters(t *testing.T) {
+	cfg, err := parseFlags([]string{"--proto", "TCP", "--host", "192.0.2.10", "--bpf", "tcp and dst port 443"})
+	if err != nil {
+		t.Fatalf("parseFlags returned error: %v", err)
+	}
+
+	if cfg.Proto != "tcp" {
+		t.Fatalf("expected proto tcp, got %q", cfg.Proto)
+	}
+	if cfg.Host != "192.0.2.10" {
+		t.Fatalf("expected host 192.0.2.10, got %q", cfg.Host)
+	}
+	if cfg.BPF != "tcp and dst port 443" {
+		t.Fatalf("expected custom BPF filter, got %q", cfg.BPF)
+	}
+}
+
+func TestParseFlagsDump(t *testing.T) {
+	cfg, err := parseFlags([]string{"--dump", "PCAP", "--limit", "100"})
+	if err != nil {
+		t.Fatalf("parseFlags returned error: %v", err)
+	}
+
+	if cfg.Dump != "pcap" {
+		t.Fatalf("expected dump pcap, got %q", cfg.Dump)
+	}
+	if cfg.Limit != 100 {
+		t.Fatalf("expected limit 100, got %d", cfg.Limit)
+	}
+}
+
 func TestParseFlagsRejectsInvalidPort(t *testing.T) {
 	tests := []struct {
 		name string
@@ -64,6 +95,30 @@ func TestParseFlagsRejectsInvalidPort(t *testing.T) {
 				t.Fatal("expected invalid port error")
 			}
 		})
+	}
+}
+
+func TestParseFlagsRejectsInvalidDump(t *testing.T) {
+	if _, err := parseFlags([]string{"--dump", "txt"}); err == nil {
+		t.Fatal("expected invalid dump error")
+	}
+}
+
+func TestParseFlagsRejectsNegativeLimit(t *testing.T) {
+	if _, err := parseFlags([]string{"--limit", "-1"}); err == nil {
+		t.Fatal("expected negative limit error")
+	}
+}
+
+func TestParseFlagsRejectsInvalidProto(t *testing.T) {
+	if _, err := parseFlags([]string{"--proto", "gre"}); err == nil {
+		t.Fatal("expected invalid proto error")
+	}
+}
+
+func TestParseFlagsRejectsICMPWithPort(t *testing.T) {
+	if _, err := parseFlags([]string{"--proto", "icmp", "-p", "443"}); err == nil {
+		t.Fatal("expected icmp with port error")
 	}
 }
 
