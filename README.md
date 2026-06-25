@@ -40,6 +40,48 @@ Capture from a specific interface:
 sudo net-monitor -i en0
 ```
 
+## Usage
+
+Supported flags:
+
+| Flag | Description |
+| --- | --- |
+| `-si` | Show available network interfaces and exit. |
+| `-i <name>` | Capture from a specific network interface. |
+| `--interface <name>` | Same as `-i`. |
+| `-p <port>` | Filter TCP/UDP traffic by port. |
+| `--proto <tcp\|udp\|icmp>` | Filter traffic by protocol. |
+| `--host <ip>` | Filter traffic by host IP address. |
+| `--bpf <filter>` | Use a custom BPF filter. Overrides the generated filter. |
+| `--dump pcap` | Write captured packets to stdout in pcap format instead of starting the UI. |
+| `--limit <count>` | Stop after capturing this many packets. Use with `--dump` to create bounded captures. |
+
+Filter by protocol, host, or port:
+
+```bash
+sudo net-monitor --proto tcp
+sudo net-monitor --host 192.0.2.10
+sudo net-monitor -p 443
+```
+
+Use a custom BPF filter:
+
+```bash
+sudo net-monitor --bpf "tcp and host 192.0.2.10 and port 443"
+```
+
+Dump captured packets to a pcap file:
+
+```bash
+sudo net-monitor --bpf "tcp and port 443" --dump pcap --limit 100 > traffic.pcap
+```
+
+Read the saved capture with `tcpdump`:
+
+```bash
+tcpdump -nn -r traffic.pcap
+```
+
 ## Build Locally
 
 ```bash
